@@ -23,6 +23,9 @@ import Layout from './components/Layout';
 import Categorias from './pages/Categorias';
 import Laboratorios from './pages/Laboratorios';
 
+
+import Respaldos from './pages/Respaldos';
+
 function App() {
   return (
     <AuthProvider>
@@ -45,6 +48,7 @@ function App() {
             {/* Nuevas rutas */}
             <Route path="categorias" element={<Categorias />} />
             <Route path="laboratorios" element={<Laboratorios />} />
+            <Route path="respaldos" element={<Respaldos />} />
           </Route>
         </Routes>
       </Router>

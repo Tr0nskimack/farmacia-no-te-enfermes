@@ -1,60 +1,79 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import toast from 'react-hot-toast';
-import { FaEdit, FaTrash, FaPlus, FaSearch, FaExclamationTriangle, FaSave, FaTimes } from 'react-icons/fa';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import toast from "react-hot-toast";
+import {
+  FaEdit,
+  FaTrash,
+  FaPlus,
+  FaSearch,
+  FaExclamationTriangle,
+} from "react-icons/fa";
+import { useAuth } from "../context/AuthContext";
 
 const Productos = () => {
   const { usuario, tienePermiso } = useAuth();
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [categorias, setCategorias] = useState([]);
   const [laboratorios, setLaboratorios] = useState([]);
   const [showNuevaCategoria, setShowNuevaCategoria] = useState(false);
   const [showNuevoLaboratorio, setShowNuevoLaboratorio] = useState(false);
-  const [nuevaCategoria, setNuevaCategoria] = useState('');
-  const [nuevoLaboratorio, setNuevoLaboratorio] = useState('');
+  const [nuevaCategoria, setNuevaCategoria] = useState("");
+  const [nuevoLaboratorio, setNuevoLaboratorio] = useState("");
   const [codigoValido, setCodigoValido] = useState(true);
   const [codigoExists, setCodigoExists] = useState(false);
 
-  // Verificar permisos
-  const puedeCrear = tienePermiso('Productos', 'crear');
-  const puedeEditar = tienePermiso('Productos', 'editar');
-  const puedeEliminar = tienePermiso('Productos', 'eliminar');
-  const puedeVer = tienePermiso('Productos', 'ver');
+  // Verificar permisos de productos
+  const puedeCrearProducto = tienePermiso("Productos", "crear");
+  const puedeEditarProducto = tienePermiso("Productos", "editar");
+  const puedeEliminarProducto = tienePermiso("Productos", "eliminar");
+  const puedeVerProducto = tienePermiso("Productos", "ver");
+
+  // Verificar permisos de categorías
+  const puedeVerCategorias = tienePermiso("Categorías", "ver");
+  const puedeCrearCategorias = tienePermiso("Categorías", "crear");
+
+  // Verificar permisos de laboratorios
+  const puedeVerLaboratorios = tienePermiso("Laboratorios", "ver");
+  const puedeCrearLaboratorios = tienePermiso("Laboratorios", "crear");
 
   // Estado para el formulario
   const [formData, setFormData] = useState({
-    codigo: '',
-    nombre: '',
-    descripcion: '',
-    precio: '',
-    stock: '',
-    stock_minimo: '10',
-    categoria: '',
-    laboratorio: '',
-    requiere_receta: false
+    codigo: "",
+    nombre: "",
+    descripcion: "",
+    precio: "",
+    stock: "",
+    stock_minimo: "10",
+    categoria: "",
+    laboratorio: "",
+    requiere_receta: false,
   });
 
   // Errores de validación
   const [errores, setErrores] = useState({});
 
   useEffect(() => {
-    if (puedeVer) {
+    if (puedeVerProducto) {
       cargarProductos();
+    }
+    // Solo cargar categorías si tiene permiso para verlas
+    if (puedeVerCategorias) {
       cargarCategorias();
+    }
+    // Solo cargar laboratorios si tiene permiso para verlos
+    if (puedeVerLaboratorios) {
       cargarLaboratorios();
     }
-  }, [puedeVer]);
+  }, [puedeVerProducto, puedeVerCategorias, puedeVerLaboratorios]);
 
   // Efecto para validar código duplicado
   useEffect(() => {
     const validarCodigo = async () => {
       if (formData.codigo && formData.codigo.length >= 3) {
-        // Si está editando y el código no cambió, no validar
         if (editingProduct && editingProduct.codigo === formData.codigo) {
           setCodigoValido(true);
           setCodigoExists(false);
@@ -62,16 +81,18 @@ const Productos = () => {
         }
 
         try {
-          const response = await axios.get(`http://localhost:5000/api/productos/verificar-codigo/${formData.codigo}`);
+          const response = await axios.get(
+            `http://localhost:5000/api/productos/verificar-codigo/${formData.codigo}`,
+          );
           setCodigoExists(response.data.exists);
           setCodigoValido(!response.data.exists);
-          
-          setErrores(prev => ({
+
+          setErrores((prev) => ({
             ...prev,
-            codigo: response.data.exists ? 'Este código ya existe' : ''
+            codigo: response.data.exists ? "Este código ya existe" : "",
           }));
         } catch (error) {
-          console.error('Error al validar código:', error);
+          console.error("Error al validar código:", error);
         }
       } else {
         setCodigoValido(formData.codigo.length >= 3);
@@ -86,10 +107,10 @@ const Productos = () => {
   const cargarProductos = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/productos');
+      const response = await axios.get("http://localhost:5000/api/productos");
       setProductos(response.data);
     } catch (error) {
-      toast.error('Error al cargar productos');
+      toast.error("Error al cargar productos");
       console.error(error);
     } finally {
       setLoading(false);
@@ -98,61 +119,83 @@ const Productos = () => {
 
   const cargarCategorias = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/productos/categorias');
+      const response = await axios.get("http://localhost:5000/api/categorias");
       setCategorias(response.data);
     } catch (error) {
-      console.error('Error al cargar categorías:', error);
+      console.error("Error al cargar categorías:", error);
     }
   };
 
   const cargarLaboratorios = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/productos/laboratorios');
+      const response = await axios.get(
+        "http://localhost:5000/api/laboratorios",
+      );
       setLaboratorios(response.data);
     } catch (error) {
-      console.error('Error al cargar laboratorios:', error);
+      console.error("Error al cargar laboratorios:", error);
     }
   };
 
   const agregarCategoria = async () => {
+    if (!puedeCrearCategorias) {
+      toast.error("No tienes permiso para crear categorías");
+      return;
+    }
+
     if (!nuevaCategoria.trim()) {
-        toast.error('Ingrese un nombre para la categoría');
-        return;
-    }
-
-    try {
-        const response = await axios.post('http://localhost:5000/api/categorias', {
-            nombre: nuevaCategoria.trim()
-        });
-        
-        setCategorias([...categorias, response.data]);
-        setFormData({ ...formData, categoria: response.data.nombre });
-        setNuevaCategoria('');
-        setShowNuevaCategoria(false);
-        toast.success('Categoría agregada');
-    } catch (error) {
-        toast.error(error.response?.data?.message || 'Error al agregar categoría');
-    }
-};
-
-  const agregarLaboratorio = async () => {
-    if (!nuevoLaboratorio.trim()) {
-      toast.error('Ingrese un nombre para el laboratorio');
+      toast.error("Ingrese un nombre para la categoría");
       return;
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/productos/laboratorios', {
-        nombre: nuevoLaboratorio.trim()
-      });
-      
+      const response = await axios.post(
+        "http://localhost:5000/api/categorias",
+        {
+          nombre: nuevaCategoria.trim(),
+        },
+      );
+
+      setCategorias([...categorias, response.data]);
+      setFormData({ ...formData, categoria: response.data.nombre });
+      setNuevaCategoria("");
+      setShowNuevaCategoria(false);
+      toast.success("Categoría agregada");
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Error al agregar categoría",
+      );
+    }
+  };
+
+  const agregarLaboratorio = async () => {
+    if (!puedeCrearLaboratorios) {
+      toast.error("No tienes permiso para crear laboratorios");
+      return;
+    }
+
+    if (!nuevoLaboratorio.trim()) {
+      toast.error("Ingrese un nombre para el laboratorio");
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/laboratorios",
+        {
+          nombre: nuevoLaboratorio.trim(),
+        },
+      );
+
       setLaboratorios([...laboratorios, response.data]);
       setFormData({ ...formData, laboratorio: response.data.nombre });
-      setNuevoLaboratorio('');
+      setNuevoLaboratorio("");
       setShowNuevoLaboratorio(false);
-      toast.success('Laboratorio agregado');
+      toast.success("Laboratorio agregado");
     } catch (error) {
-      toast.error('Error al agregar laboratorio');
+      toast.error(
+        error.response?.data?.message || "Error al agregar laboratorio",
+      );
     }
   };
 
@@ -160,25 +203,25 @@ const Productos = () => {
     const nuevosErrores = {};
 
     if (!formData.codigo || formData.codigo.length < 3) {
-      nuevosErrores.codigo = 'El código debe tener al menos 3 caracteres';
+      nuevosErrores.codigo = "El código debe tener al menos 3 caracteres";
     } else if (codigoExists) {
-      nuevosErrores.codigo = 'Este código ya existe';
+      nuevosErrores.codigo = "Este código ya existe";
     }
 
     if (!formData.nombre || formData.nombre.length < 3) {
-      nuevosErrores.nombre = 'El nombre debe tener al menos 3 caracteres';
+      nuevosErrores.nombre = "El nombre debe tener al menos 3 caracteres";
     }
 
     if (!formData.precio || formData.precio <= 0) {
-      nuevosErrores.precio = 'El precio debe ser mayor a 0';
+      nuevosErrores.precio = "El precio debe ser mayor a 0";
     }
 
     if (!formData.stock || formData.stock < 0) {
-      nuevosErrores.stock = 'El stock no puede ser negativo';
+      nuevosErrores.stock = "El stock no puede ser negativo";
     }
 
     if (!formData.stock_minimo || formData.stock_minimo < 0) {
-      nuevosErrores.stock_minimo = 'El stock mínimo no puede ser negativo';
+      nuevosErrores.stock_minimo = "El stock mínimo no puede ser negativo";
     }
 
     setErrores(nuevosErrores);
@@ -187,98 +230,100 @@ const Productos = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
-    // Limpiar error del campo cuando el usuario empieza a escribir
-    setErrores(prev => ({ ...prev, [name]: '' }));
-    
+
+    setErrores((prev) => ({ ...prev, [name]: "" }));
+
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validarFormulario()) {
-      toast.error('Por favor, corrija los errores en el formulario');
+      toast.error("Por favor, corrija los errores en el formulario");
       return;
     }
 
     try {
       if (editingProduct) {
-        if (!puedeEditar) {
-          toast.error('No tienes permiso para editar productos');
+        if (!puedeEditarProducto) {
+          toast.error("No tienes permiso para editar productos");
           return;
         }
-        await axios.put(`http://localhost:5000/api/productos/${editingProduct.id}`, formData);
-        toast.success('Producto actualizado exitosamente');
+        await axios.put(
+          `http://localhost:5000/api/productos/${editingProduct.id}`,
+          formData,
+        );
+        toast.success("Producto actualizado exitosamente");
       } else {
-        if (!puedeCrear) {
-          toast.error('No tienes permiso para crear productos');
+        if (!puedeCrearProducto) {
+          toast.error("No tienes permiso para crear productos");
           return;
         }
-        await axios.post('http://localhost:5000/api/productos', formData);
-        toast.success('Producto creado exitosamente');
+        await axios.post("http://localhost:5000/api/productos", formData);
+        toast.success("Producto creado exitosamente");
       }
       setShowModal(false);
       resetForm();
       cargarProductos();
-      cargarCategorias(); // Recargar categorías por si se agregó una nueva
-      cargarLaboratorios(); // Recargar laboratorios por si se agregó uno nuevo
+      cargarCategorias();
+      cargarLaboratorios();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al guardar producto');
+      toast.error(error.response?.data?.message || "Error al guardar producto");
     }
   };
 
   const handleEdit = (producto) => {
-    if (!puedeEditar) {
-      toast.error('No tienes permiso para editar productos');
+    if (!puedeEditarProducto) {
+      toast.error("No tienes permiso para editar productos");
       return;
     }
     setEditingProduct(producto);
     setFormData({
       codigo: producto.codigo,
       nombre: producto.nombre,
-      descripcion: producto.descripcion || '',
+      descripcion: producto.descripcion || "",
       precio: producto.precio,
       stock: producto.stock,
       stock_minimo: producto.stock_minimo,
-      categoria: producto.categoria || '',
-      laboratorio: producto.laboratorio || '',
-      requiere_receta: producto.requiere_receta
+      categoria: producto.categoria || "",
+      laboratorio: producto.laboratorio || "",
+      requiere_receta: producto.requiere_receta,
     });
     setCodigoExists(false);
     setShowModal(true);
   };
 
   const handleDelete = async (id) => {
-    if (!puedeEliminar) {
-      toast.error('No tienes permiso para eliminar productos');
+    if (!puedeEliminarProducto) {
+      toast.error("No tienes permiso para eliminar productos");
       return;
     }
-    if (window.confirm('¿Estás seguro de eliminar este producto?')) {
+    if (window.confirm("¿Estás seguro de eliminar este producto?")) {
       try {
         await axios.delete(`http://localhost:5000/api/productos/${id}`);
-        toast.success('Producto eliminado');
+        toast.success("Producto eliminado");
         cargarProductos();
       } catch (error) {
-        toast.error('Error al eliminar producto');
+        toast.error("Error al eliminar producto");
       }
     }
   };
 
   const resetForm = () => {
     setFormData({
-      codigo: '',
-      nombre: '',
-      descripcion: '',
-      precio: '',
-      stock: '',
-      stock_minimo: '10',
-      categoria: '',
-      laboratorio: '',
-      requiere_receta: false
+      codigo: "",
+      nombre: "",
+      descripcion: "",
+      precio: "",
+      stock: "",
+      stock_minimo: "10",
+      categoria: "",
+      laboratorio: "",
+      requiere_receta: false,
     });
     setErrores({});
     setCodigoExists(false);
@@ -288,17 +333,18 @@ const Productos = () => {
     setShowNuevoLaboratorio(false);
   };
 
-  const filteredProductos = productos.filter(producto =>
-    producto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    producto.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    producto.categoria?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    producto.laboratorio?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProductos = productos.filter(
+    (producto) =>
+      producto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      producto.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      producto.categoria?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      producto.laboratorio?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const productosBajoStock = productos.filter(p => p.stock <= p.stock_minimo);
+  const productosBajoStock = productos.filter((p) => p.stock <= p.stock_minimo);
 
-  // Si no tiene permiso para ver, mostrar mensaje
-  if (!puedeVer) {
+  // Si no tiene permiso para ver productos
+  if (!puedeVerProducto) {
     return (
       <div className="p-6">
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
@@ -319,10 +365,10 @@ const Productos = () => {
 
   return (
     <div className="p-6">
-      {/* Header */}
+      {/* Header y tabla de productos (se mantiene igual) */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Productos</h1>
-        {puedeCrear && (
+        {puedeCrearProducto && (
           <button
             onClick={() => {
               resetForm();
@@ -391,7 +437,7 @@ const Productos = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Receta
               </th>
-              {(puedeEditar || puedeEliminar) && (
+              {(puedeEditarProducto || puedeEliminarProducto) && (
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
@@ -401,7 +447,10 @@ const Productos = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredProductos.length > 0 ? (
               filteredProductos.map((producto) => (
-                <tr key={producto.id} className={`hover:bg-gray-50 ${producto.stock <= producto.stock_minimo ? 'bg-red-50' : ''}`}>
+                <tr
+                  key={producto.id}
+                  className={`hover:bg-gray-50 ${producto.stock <= producto.stock_minimo ? "bg-red-50" : ""}`}
+                >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {producto.codigo}
                   </td>
@@ -409,20 +458,22 @@ const Productos = () => {
                     {producto.nombre}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {producto.categoria || '-'}
+                    {producto.categoria || "-"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {producto.laboratorio || '-'}
+                    {producto.laboratorio || "-"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     ${Number(producto.precio).toFixed(2)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`font-medium ${
-                      producto.stock <= producto.stock_minimo 
-                        ? 'text-red-600' 
-                        : 'text-green-600'
-                    }`}>
+                    <span
+                      className={`font-medium ${
+                        producto.stock <= producto.stock_minimo
+                          ? "text-red-600"
+                          : "text-green-600"
+                      }`}
+                    >
                       {producto.stock}
                     </span>
                   </td>
@@ -430,12 +481,12 @@ const Productos = () => {
                     {producto.stock_minimo}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {producto.requiere_receta ? 'Sí' : 'No'}
+                    {producto.requiere_receta ? "Sí" : "No"}
                   </td>
-                  {(puedeEditar || puedeEliminar) && (
+                  {(puedeEditarProducto || puedeEliminarProducto) && (
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex space-x-3">
-                        {puedeEditar && (
+                        {puedeEditarProducto && (
                           <button
                             onClick={() => handleEdit(producto)}
                             className="text-blue-600 hover:text-blue-900 transition-colors cursor-pointer"
@@ -444,7 +495,7 @@ const Productos = () => {
                             <FaEdit size={18} />
                           </button>
                         )}
-                        {puedeEliminar && (
+                        {puedeEliminarProducto && (
                           <button
                             onClick={() => handleDelete(producto.id)}
                             className="text-red-600 hover:text-red-900 transition-colors cursor-pointer"
@@ -470,13 +521,13 @@ const Productos = () => {
       </div>
 
       {/* Modal de creación/edición */}
-      {showModal && (puedeCrear || puedeEditar) && (
+      {showModal && (puedeCrearProducto || puedeEditarProducto) && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
             <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
-              {editingProduct ? 'Editar Producto' : 'Nuevo Producto'}
+              {editingProduct ? "Editar Producto" : "Nuevo Producto"}
             </h3>
-            
+
             <form onSubmit={handleSubmit}>
               {/* Código */}
               <div className="mb-4">
@@ -491,7 +542,7 @@ const Productos = () => {
                   required
                   minLength="3"
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 cursor-text ${
-                    errores.codigo ? 'border-red-500' : 'border-gray-300'
+                    errores.codigo ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="Ingrese código único"
                 />
@@ -499,7 +550,9 @@ const Productos = () => {
                   <p className="mt-1 text-xs text-red-600">{errores.codigo}</p>
                 )}
                 {formData.codigo && !errores.codigo && codigoValido && (
-                  <p className="mt-1 text-xs text-green-600">✓ Código disponible</p>
+                  <p className="mt-1 text-xs text-green-600">
+                    ✓ Código disponible
+                  </p>
                 )}
               </div>
 
@@ -515,7 +568,7 @@ const Productos = () => {
                   onChange={handleInputChange}
                   required
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 cursor-text ${
-                    errores.nombre ? 'border-red-500' : 'border-gray-300'
+                    errores.nombre ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="Ingrese nombre del producto"
                 />
@@ -554,12 +607,14 @@ const Productos = () => {
                     min="0"
                     step="0.01"
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 cursor-text ${
-                      errores.precio ? 'border-red-500' : 'border-gray-300'
+                      errores.precio ? "border-red-500" : "border-gray-300"
                     }`}
                     placeholder="0.00"
                   />
                   {errores.precio && (
-                    <p className="mt-1 text-xs text-red-600">{errores.precio}</p>
+                    <p className="mt-1 text-xs text-red-600">
+                      {errores.precio}
+                    </p>
                   )}
                 </div>
 
@@ -575,7 +630,7 @@ const Productos = () => {
                     required
                     min="0"
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 cursor-text ${
-                      errores.stock ? 'border-red-500' : 'border-gray-300'
+                      errores.stock ? "border-red-500" : "border-gray-300"
                     }`}
                     placeholder="0"
                   />
@@ -598,70 +653,87 @@ const Productos = () => {
                   required
                   min="0"
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 cursor-text ${
-                    errores.stock_minimo ? 'border-red-500' : 'border-gray-300'
+                    errores.stock_minimo ? "border-red-500" : "border-gray-300"
                   }`}
                   placeholder="10"
                 />
                 {errores.stock_minimo && (
-                  <p className="mt-1 text-xs text-red-600">{errores.stock_minimo}</p>
+                  <p className="mt-1 text-xs text-red-600">
+                    {errores.stock_minimo}
+                  </p>
                 )}
               </div>
 
-              {/* Categoría */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Categoría
-                </label>
-                <div className="flex space-x-2">
-                  <select
-                    name="categoria"
-                    value={formData.categoria}
-                    onChange={handleInputChange}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 cursor-pointer"
-                  >
-                    <option value="">Seleccione categoría</option>
-                    {categorias.map(cat => (
-                      <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => setShowNuevaCategoria(true)}
-                    className="px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors cursor-pointer"
-                    title="Agregar nueva categoría"
-                  >
-                    <FaPlus />
-                  </button>
+              {puedeVerCategorias && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Categoría
+                  </label>
+                  <div className="flex space-x-2">
+                    <select
+                      name="categoria"
+                      value={formData.categoria}
+                      onChange={handleInputChange}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 cursor-pointer"
+                    >
+                      <option value="">Seleccione categoría</option>
+                      {categorias.map((cat) => (
+                        <option key={cat.id} value={cat.nombre}>
+                          {cat.nombre}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Botón de nueva categoría - Misma lógica que funcionó para acciones */}
+                    {puedeCrearCategorias === true && (
+                      <button
+                        type="button"
+                        onClick={() => setShowNuevaCategoria(true)}
+                        className="px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors cursor-pointer"
+                        title="Agregar nueva categoría"
+                      >
+                        <FaPlus />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Laboratorio */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Laboratorio
-                </label>
-                <div className="flex space-x-2">
-                  <select
-                    name="laboratorio"
-                    value={formData.laboratorio}
-                    onChange={handleInputChange}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 cursor-pointer"
-                  >
-                    <option value="">Seleccione laboratorio</option>
-                    {laboratorios.map(lab => (
-                      <option key={lab.id} value={lab.nombre}>{lab.nombre}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => setShowNuevoLaboratorio(true)}
-                    className="px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors cursor-pointer"
-                    title="Agregar nuevo laboratorio"
-                  >
-                    <FaPlus />
-                  </button>
+              {puedeVerLaboratorios && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Laboratorio
+                  </label>
+                  <div className="flex space-x-2">
+                    <select
+                      name="laboratorio"
+                      value={formData.laboratorio}
+                      onChange={handleInputChange}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 cursor-pointer"
+                    >
+                      <option value="">Seleccione laboratorio</option>
+                      {laboratorios.map((lab) => (
+                        <option key={lab.id} value={lab.nombre}>
+                          {lab.nombre}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Botón de nuevo laboratorio - Misma lógica que funcionó para acciones */}
+                    {puedeCrearLaboratorios === true && (
+                      <button
+                        type="button"
+                        onClick={() => setShowNuevoLaboratorio(true)}
+                        className="px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors cursor-pointer"
+                        title="Agregar nuevo laboratorio"
+                      >
+                        <FaPlus />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Requiere receta */}
               <div className="mb-4">
@@ -695,10 +767,12 @@ const Productos = () => {
                   type="submit"
                   disabled={!!errores.codigo || codigoExists}
                   className={`px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors cursor-pointer ${
-                    (errores.codigo || codigoExists) ? 'opacity-50 cursor-not-allowed' : ''
+                    errores.codigo || codigoExists
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
                   }`}
                 >
-                  {editingProduct ? 'Actualizar' : 'Guardar'}
+                  {editingProduct ? "Actualizar" : "Guardar"}
                 </button>
               </div>
             </form>
@@ -707,7 +781,7 @@ const Productos = () => {
       )}
 
       {/* Modal Nueva Categoría */}
-      {showNuevaCategoria && (
+      {showNuevaCategoria && puedeCrearCategorias === true && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-40 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
             <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
@@ -740,7 +814,7 @@ const Productos = () => {
       )}
 
       {/* Modal Nuevo Laboratorio */}
-      {showNuevoLaboratorio && (
+      {showNuevoLaboratorio && puedeCrearLaboratorios === true && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-40 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
             <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">

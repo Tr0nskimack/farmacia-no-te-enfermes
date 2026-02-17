@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import MetodoPagoModal from "../components/MetodoPagoModal";
+import { FaMoneyBillWave } from "react-icons/fa";
 import {
   FaSearch,
   FaPlus,
@@ -22,6 +24,8 @@ const Facturacion = () => {
   const [facturas, setFacturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const { usuario } = useAuth();
+  const [showPagoModal, setShowPagoModal] = useState(false);
+  const [datosPago, setDatosPago] = useState(null);
 
   // Formulario nuevo cliente
   const [nuevoCliente, setNuevoCliente] = useState({
@@ -119,17 +123,17 @@ const Facturacion = () => {
     );
   };
 
- const calcularSubtotal = () => {
+  const calcularSubtotal = () => {
     return carrito.reduce((sum, item) => sum + Number(item.subtotal), 0);
-};
+  };
 
-const calcularIVA = () => {
+  const calcularIVA = () => {
     return Number(calcularSubtotal()) * 0.16;
-};
+  };
 
-const calcularTotal = () => {
+  const calcularTotal = () => {
     return Number(calcularSubtotal()) + Number(calcularIVA());
-};
+  };
 
   const handleCrearCliente = async (e) => {
     e.preventDefault();
@@ -155,39 +159,66 @@ const calcularTotal = () => {
 
   const procesarFactura = async () => {
     if (!clienteSeleccionado) {
-        toast.error('Seleccione un cliente');
-        return;
+      toast.error("Seleccione un cliente");
+      return;
     }
 
     if (carrito.length === 0) {
-        toast.error('Agregue productos al carrito');
-        return;
+      toast.error("Agregue productos al carrito");
+      return;
     }
+
+    // Mostrar modal de método de pago
+    setShowPagoModal(true);
+  };
+
+  const confirmarPago = async (pagoData) => {
+    setShowPagoModal(false);
 
     try {
-        const facturaData = {
-            cliente_id: clienteSeleccionado.id,
-            productos: carrito.map(item => ({
-                producto_id: item.id,
-                cantidad: item.cantidad,
-                precio_unitario: Number(item.precio),
-                subtotal: Number(item.subtotal)
-            })),
-            subtotal: Number(calcularSubtotal()),
-            iva: Number(calcularIVA()),
-            total: Number(calcularTotal())
-        };
+      const facturaData = {
+        cliente_id: clienteSeleccionado.id,
+        productos: carrito.map((item) => ({
+          producto_id: item.id,
+          cantidad: item.cantidad,
+          precio_unitario: Number(item.precio),
+          subtotal: Number(item.subtotal),
+        })),
+        subtotal: Number(calcularSubtotal()),
+        iva: Number(calcularIVA()),
+        total: Number(calcularTotal()),
+        metodo_pago: pagoData.metodo_pago,
+        referencia_pago: pagoData.referencia_pago,
+        monto_recibido: pagoData.monto_recibido,
+        vuelto: pagoData.vuelto,
+      };
 
-        await axios.post('http://localhost:5000/api/facturas', facturaData);
-        toast.success('Factura creada exitosamente');
-        
-        setCarrito([]);
-        setClienteSeleccionado(null);
-        cargarDatos();
+      const response = await axios.post(
+        "http://localhost:5000/api/facturas",
+        facturaData,
+      );
+
+      // Mostrar resumen de pago
+      toast.success(
+        <div>
+          <p className="font-bold">✅ Factura creada exitosamente</p>
+          <p className="text-sm">N°: {response.data.numero_factura}</p>
+          <p className="text-sm">Método: {pagoData.metodo_pago}</p>
+          {pagoData.vuelto > 0 && (
+            <p className="text-sm">Vuelto: ${pagoData.vuelto.toFixed(2)}</p>
+          )}
+        </div>,
+        { duration: 5000 },
+      );
+
+      // Limpiar carrito y cliente
+      setCarrito([]);
+      setClienteSeleccionado(null);
+      cargarDatos();
     } catch (error) {
-        toast.error('Error al crear factura');
+      toast.error("Error al crear factura");
     }
-};
+  };
 
   const filteredClientes = clientes.filter(
     (cliente) =>
@@ -223,7 +254,7 @@ const calcularTotal = () => {
                 </p>
                 <button
                   onClick={() => setClienteSeleccionado(null)}
-                  className="text-red-600 text-sm mt-2 hover:text-red-700"
+                  className="text-red-600 text-sm mt-2 hover:text-red-700 cursor-pointer"
                 >
                   Cambiar cliente
                 </button>
@@ -411,7 +442,7 @@ const calcularTotal = () => {
 
                   <button
                     onClick={procesarFactura}
-                    className="mt-4 w-full bg-blue-500 text-white px-6 py-3 rounded-lg flex items-center justify-center hover:bg-blue-600"
+                    className="mt-4 w-full bg-blue-500 text-white px-6 py-3 rounded-lg flex items-center justify-center hover:bg-blue-600 cursor-pointer"
                   >
                     <FaFileInvoice className="mr-2" />
                     Procesar Factura
@@ -568,6 +599,13 @@ const calcularTotal = () => {
           </div>
         </div>
       )}
+      {/* Modal de método de pago */}
+      <MetodoPagoModal
+        isOpen={showPagoModal}
+        onClose={() => setShowPagoModal(false)}
+        total={calcularTotal()}
+        onConfirm={confirmarPago}
+      />
     </div>
   );
 };

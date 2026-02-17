@@ -5,7 +5,18 @@ const crearFactura = async (req, res) => {
     await connection.beginTransaction();
 
     try {
-        const { cliente_id, productos, subtotal, iva, total } = req.body;
+        const { 
+            cliente_id, 
+            productos, 
+            subtotal, 
+            iva, 
+            total,
+            metodo_pago,
+            referencia_pago,
+            monto_recibido,
+            vuelto 
+        } = req.body;
+        
         const usuario_id = req.usuario.id;
 
         // Generar número de factura
@@ -14,10 +25,14 @@ const crearFactura = async (req, res) => {
         );
         const numeroFactura = `FAC-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(facturaCount[0].count + 1).padStart(4, '0')}`;
 
-        // Crear factura
+        // Crear factura con método de pago
         const [facturaResult] = await connection.query(
-            'INSERT INTO facturas (numero_factura, cliente_id, usuario_id, subtotal, iva, total) VALUES (?, ?, ?, ?, ?, ?)',
-            [numeroFactura, cliente_id, usuario_id, subtotal, iva, total]
+            `INSERT INTO facturas 
+            (numero_factura, cliente_id, usuario_id, subtotal, iva, total, 
+             metodo_pago, referencia_pago, monto_recibido, vuelto) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [numeroFactura, cliente_id, usuario_id, subtotal, iva, total, 
+             metodo_pago, referencia_pago, monto_recibido, vuelto]
         );
 
         // Crear detalles y actualizar stock
@@ -38,7 +53,9 @@ const crearFactura = async (req, res) => {
         res.status(201).json({
             message: 'Factura creada exitosamente',
             numero_factura: numeroFactura,
-            id: facturaResult.insertId
+            id: facturaResult.insertId,
+            metodo_pago,
+            vuelto
         });
     } catch (error) {
         await connection.rollback();

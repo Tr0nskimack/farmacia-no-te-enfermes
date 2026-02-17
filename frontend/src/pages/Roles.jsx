@@ -58,114 +58,85 @@ const Roles = () => {
         }
     };
 
-    const togglePermiso = (moduloId, campo) => {
-        if (rolSeleccionado === 'admin') {
-            toast.error('Los permisos del Administrador no pueden modificarse');
-            return;
-        }
+    // En togglePermiso, asegura que si no existe el permiso, se cree con id temporal
+const togglePermiso = (moduloId, campo) => {
+    if (rolSeleccionado === 'admin') {
+        toast.error('Los permisos del Administrador no pueden modificarse');
+        return;
+    }
 
-        const permisoActual = permisos[moduloId];
-        
-        // Si no existe, crear uno temporal
-        if (!permisoActual) {
-            const nuevoPermiso = {
-                modulo_id: moduloId,
-                puede_ver: false,
-                puede_crear: false,
-                puede_editar: false,
-                puede_eliminar: false,
-                id: `temp_${moduloId}_${Date.now()}`
-            };
-            
-            // Actualizar el permiso con el campo a true
-            const permisoActualizado = { ...nuevoPermiso, [campo]: true };
-            
-            setPermisos(prev => ({
-                ...prev,
-                [moduloId]: permisoActualizado
-            }));
-            
-            // Agregar a nuevosPermisos
-            setNuevosPermisos(prev => {
-                const existe = prev.find(p => p.modulo_id === moduloId);
-                if (existe) {
-                    return prev.map(p => p.modulo_id === moduloId ? permisoActualizado : p);
-                } else {
-                    return [...prev, permisoActualizado];
-                }
-            });
-            
-            setHayCambios(true);
-            return;
-        }
-
-        // Si existe, invertir el valor
-        const nuevoValor = !permisoActual[campo];
-        const permisoActualizado = { ...permisoActual, [campo]: nuevoValor };
-
-        setPermisos({
-            ...permisos,
-            [moduloId]: permisoActualizado
-        });
-
-        // Si es temporal, actualizar en nuevosPermisos
-        if (permisoActual.id.toString().startsWith('temp_')) {
-            setNuevosPermisos(prev => 
-                prev.map(p => p.modulo_id === moduloId ? permisoActualizado : p)
-            );
-        }
-
-        setHayCambios(true);
+    // Si no existe, crear objeto base con id temporal
+    const permisoActual = permisos[moduloId] || {
+        modulo_id: moduloId,
+        puede_ver: false,
+        puede_crear: false,
+        puede_editar: false,
+        puede_eliminar: false,
+        id: `temp_${moduloId}_${Date.now()}`
     };
 
-    const guardarCambios = async () => {
-        if (rolSeleccionado === 'admin') {
-            toast.error('Los permisos del Administrador no pueden modificarse');
-            return;
-        }
+    const nuevoValor = !permisoActual[campo];
+    const permisoActualizado = { ...permisoActual, [campo]: nuevoValor };
 
-        setGuardando(true);
-        let errores = 0;
-        let exitos = 0;
+    setPermisos({
+        ...permisos,
+        [moduloId]: permisoActualizado
+    });
 
-        // Actualizar permisos existentes (con ID numérico)
-        for (const moduloId in permisos) {
-            const permiso = permisos[moduloId];
-            const permisoOriginal = permisosOriginales[moduloId];
-            
-            // Si tiene ID numérico y hubo cambios
-            if (permiso.id && !isNaN(permiso.id) && 
-                JSON.stringify(permiso) !== JSON.stringify(permisoOriginal)) {
-                try {
-                    await axios.put(`http://localhost:5000/api/roles/permiso/${permiso.id}`, {
-                        puede_ver: permiso.puede_ver,
-                        puede_crear: permiso.puede_crear,
-                        puede_editar: permiso.puede_editar,
-                        puede_eliminar: permiso.puede_eliminar
-                    });
-                    exitos++;
-                } catch (error) {
-                    console.error('Error al actualizar permiso:', error);
-                    errores++;
-                }
-            }
-        }
+    setHayCambios(true);
+};
 
-        // Crear nuevos permisos (los que tienen ID temporal)
-        for (const permiso of nuevosPermisos) {
+// Guardar cambios (crear y actualizar)
+const guardarCambios = async () => {
+    if (rolSeleccionado === 'admin') {
+        toast.error('Los permisos del Administrador no pueden modificarse');
+        return;
+    }
+
+    setGuardando(true);
+    let errores = 0;
+    let exitos = 0;
+
+    // 1. Actualizar permisos existentes (con id numérico)
+    for (const moduloId in permisos) {
+        const permiso = permisos[moduloId];
+        const permisoOriginal = permisosOriginales[moduloId];
+        
+        if (permiso.id && !isNaN(permiso.id) && 
+            JSON.stringify(permiso) !== JSON.stringify(permisoOriginal)) {
             try {
-                const response = await axios.post('http://localhost:5000/api/roles/permiso', {
-                    rol: rolSeleccionado,
-                    modulo_id: permiso.modulo_id,
+                await axios.put(`http://localhost:5000/api/roles/permiso/${permiso.id}`, {
                     puede_ver: permiso.puede_ver,
                     puede_crear: permiso.puede_crear,
                     puede_editar: permiso.puede_editar,
                     puede_eliminar: permiso.puede_eliminar
                 });
-                // Actualizar el ID real en el estado local
+                exitos++;
+            } catch (error) {
+                console.error('Error al actualizar permiso:', error);
+                errores++;
+            }
+        }
+    }
+
+    // 2. Crear nuevos permisos (los que tienen id temporal)
+    for (const moduloId in permisos) {
+        const permiso = permisos[moduloId];
+        // Si tiene id temporal y al menos un permiso activo (o incluso si todos false, pero queremos crearlo igual)
+        if (permiso.id && permiso.id.toString().startsWith('temp_')) {
+            try {
+                const response = await axios.post('http://localhost:5000/api/roles/permiso', {
+                    rol: rolSeleccionado,
+                    modulo_id: moduloId,
+                    puede_ver: permiso.puede_ver,
+                    puede_crear: permiso.puede_crear,
+                    puede_editar: permiso.puede_editar,
+                    puede_eliminar: permiso.puede_eliminar
+                });
+                // Actualizar el id real en el estado
                 setPermisos(prev => ({
                     ...prev,
-                    [permiso.modulo_id]: { ...permiso, id: response.data.id }
+                    [moduloId]: { ...prev[moduloId], id: response.data.id }
                 }));
                 exitos++;
             } catch (error) {
@@ -173,19 +144,19 @@ const Roles = () => {
                 errores++;
             }
         }
+    }
 
-        setGuardando(false);
-        setNuevosPermisos([]);
+    setGuardando(false);
 
-        if (errores === 0) {
-            toast.success(`✅ Permisos guardados correctamente`);
-            // Recargar permisos para tener los IDs reales
-            await cargarPermisos(rolSeleccionado);
-            setHayCambios(false);
-        } else {
-            toast.error(`❌ Error al guardar algunos permisos`);
-        }
-    };
+    if (errores === 0) {
+        toast.success(`✅ Permisos guardados correctamente`);
+        // Recargar permisos para tener los IDs reales
+        cargarPermisos(rolSeleccionado);
+        setHayCambios(false);
+    } else {
+        toast.error(`❌ Error al guardar algunos permisos (${errores} errores, ${exitos} exitosos)`);
+    }
+};
 
     const cancelarCambios = () => {
         setPermisos(JSON.parse(JSON.stringify(permisosOriginales)));

@@ -14,6 +14,7 @@ const clienteRoutes = require('./src/routes/clienteRoutes');
 const usuarioRoutes = require('./src/routes/usuarioRoutes');
 // ... después de las otras importaciones
 const rolRoutes = require('./src/routes/rolRoutes');
+const backupRoutes = require('./src/routes/backupRoutes');
 
 const app = express();
 
@@ -41,6 +42,16 @@ const laboratorioRoutes = require('./src/routes/laboratorioRoutes');
 // Agregar después de las otras rutas
 app.use('/api/categorias', verificarToken, categoriaRoutes);
 app.use('/api/laboratorios', verificarToken, laboratorioRoutes);
+// Agregar después de las otras importaciones
+
+
+// Agregar después de las otras rutas
+app.use('/api/backups', verificarToken, backupRoutes);
+// En server.js, agregar:
+const bcvRoutes = require('./src/routes/bcvRoutes');
+
+// Esta ruta debe ser pública (sin verificarToken)
+app.use('/api/bcv', bcvRoutes);
 
 // Ruta para alertas
 app.get('/api/alertas/bajo-stock', verificarToken, async (req, res) => {

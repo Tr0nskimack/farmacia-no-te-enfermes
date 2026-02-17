@@ -13,9 +13,8 @@ import {
   FaShieldAlt,
   FaTags,
   FaFlask,
-  FaCog,
-  FaChevronDown,
-  FaChevronUp
+  FaDatabase, // Importar icono de base de datos
+  FaCog
 } from 'react-icons/fa';
 import { useState } from 'react';
 
@@ -81,6 +80,12 @@ const Sidebar = () => {
       name: 'Laboratorios', 
       icon: FaFlask, 
       modulo: 'Laboratorios'
+    },
+    { 
+      path: '/respaldos',  // NUEVO: Ruta para respaldos
+      name: 'Respaldos', 
+      icon: FaDatabase, 
+      modulo: 'Respaldos'
     },
     { 
       path: '/usuarios', 

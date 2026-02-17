@@ -92,22 +92,16 @@ router.get('/usuario/:usuarioId', verificarToken, async (req, res) => {
     }
 });
 
-// Crear un nuevo permiso (POST)
+// Crear un nuevo permiso
 router.post('/permiso', verificarToken, verificarRol(['admin']), async (req, res) => {
     try {
         const { rol, modulo_id, puede_ver, puede_crear, puede_editar, puede_eliminar } = req.body;
-        
         const [result] = await db.query(
-            `INSERT INTO permisos_rol 
-            (rol, modulo_id, puede_ver, puede_crear, puede_editar, puede_eliminar) 
-            VALUES (?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO permisos_rol (rol, modulo_id, puede_ver, puede_crear, puede_editar, puede_eliminar)
+             VALUES (?, ?, ?, ?, ?, ?)`,
             [rol, modulo_id, puede_ver, puede_crear, puede_editar, puede_eliminar]
         );
-        
-        res.status(201).json({ 
-            message: 'Permiso creado', 
-            id: result.insertId 
-        });
+        res.status(201).json({ id: result.insertId, message: 'Permiso creado' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error al crear permiso' });
